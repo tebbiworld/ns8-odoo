@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Regenerate odoo.conf from the updated environment so the change is on disk
+# before the pod restarts.
+set -e
+exec 1>&2
+runagent render-config

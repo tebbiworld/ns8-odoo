@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Apply the stored LDAP settings to one database (data.database) or to every
+# Odoo database (data.all == true).
+
+import json
+import os
+import subprocess
+import sys
+
+import agent
+
+data = json.load(sys.stdin)
+
+if os.environ.get("LDAP_ENABLED", "false") != "true":
+    agent.set_status("validation-failed")
+    json.dump([{"field": "ldap_enabled", "parameter": "ldap_enabled", "value": False,
+                "error": "ldap_not_enabled"}], fp=sys.stdout)
+    sys.exit(2)
+
+targets = []
+if data.get("all"):
+    out = subprocess.run(
+        ["podman", "exec", "odoo-db", "psql", "-U", "odoo", "-d", "postgres", "-tAc",
+         "SELECT datname FROM pg_database WHERE datistemplate=false AND datname <> 'postgres'"],
+        capture_output=True, text=True, timeout=20)
+    targets = [l.strip() for l in out.stdout.splitlines() if l.strip()]
+elif (data.get("database") or "").strip():
+    targets = [data["database"].strip()]
+
+if not targets:
+    agent.set_status("validation-failed")
+    json.dump([{"field": "database", "parameter": "database", "value": data.get("database", ""),
+                "error": "no_database_selected"}], fp=sys.stdout)
+    sys.exit(2)
+
+results = {}
+failed = False
+for db in targets:
+    proc = subprocess.run(["runagent", "apply-ldap", db], capture_output=True, text=True)
+    ok = proc.returncode == 0
+    results[db] = "ok" if ok else (proc.stderr or "failed").strip()[-300:]
+    failed = failed or not ok
+
+json.dump({"applied": results, "failed": failed}, fp=sys.stdout)
+sys.exit(1 if failed else 0)

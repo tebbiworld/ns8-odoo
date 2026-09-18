@@ -1,0 +1,81 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "get-configuration output",
+    "$id": "http://schema.nethserver.org/odoo/get-configuration-output.json",
+    "description": "Get odoo configuration",
+    "type": "object",
+    "properties": {
+        "host": {
+            "type": "string"
+        },
+        "http2https": {
+            "type": "boolean"
+        },
+        "lets_encrypt": {
+            "type": "boolean"
+        },
+        "timezone": {
+            "type": "string"
+        },
+        "workers": {
+            "type": "integer"
+        },
+        "list_db": {
+            "type": "boolean"
+        },
+        "master_password_set": {
+            "type": "boolean"
+        },
+        "db_running": {
+            "type": "boolean"
+        },
+        "app_running": {
+            "type": "boolean"
+        },
+        "running": {
+            "type": "boolean"
+        },
+        "url": {
+            "type": "string"
+        },
+        "database_manager_url": {
+            "type": "string"
+        },
+        "ldap_enabled": {
+            "type": "boolean"
+        },
+        "ldap_server": {
+            "type": "string"
+        },
+        "ldap_port": {
+            "type": "integer"
+        },
+        "ldap_tls": {
+            "type": "boolean"
+        },
+        "ldap_binddn": {
+            "type": "string"
+        },
+        "ldap_base": {
+            "type": "string"
+        },
+        "ldap_filter": {
+            "type": "string"
+        },
+        "ldap_create_user": {
+            "type": "boolean"
+        },
+        "ldap_password_set": {
+            "type": "boolean"
+        },
+        "databases": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "ldap_verify_cert": {
+            "type": "boolean"
+        }
+    }
+}

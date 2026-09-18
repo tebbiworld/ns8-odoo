@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# The node agent's update-module action extracts the new image and runs these
+# hooks but does not restart the units. Re-render the config and restart the pod
+# so a changed unit file or config takes effect immediately.
+
+set -e
+exec 1>&2
+
+runagent render-config || true
+systemctl --user daemon-reload
+systemctl --user restart odoo.service

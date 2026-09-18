@@ -1,0 +1,20 @@
+{
+  "name": "Odoo",
+  "description": {
+    "en": "Odoo 19 ERP/CRM (community) with PostgreSQL, custom/OCA add-ons",
+    "de": "Odoo 19 ERP/CRM (Community) mit PostgreSQL, eigene/OCA-Module"
+  },
+  "categories": ["office"],
+  "authors": [
+    {
+      "name": "tebbi",
+      "email": "info@ebbinghaus.world"
+    }
+  ],
+  "docs": {
+    "documentation_url": "https://www.odoo.com/documentation/19.0/",
+    "bug_url": "https://github.com/tebbiworld/ns8-odoo/issues",
+    "code_url": "https://github.com/tebbiworld/ns8-odoo"
+  },
+  "source": "ghcr.io/tebbiworld/odoo"
+}

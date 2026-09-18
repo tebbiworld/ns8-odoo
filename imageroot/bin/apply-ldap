@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Apply the module's stored LDAP settings to one Odoo database by upserting a
+# res.company.ldap record for its main company, using `odoo shell` inside the
+# app container (runs as the Odoo superuser, no master password needed).
+#
+# Usage: apply-ldap <database>
+
+import os
+import subprocess
+import sys
+
+if len(sys.argv) < 2 or not sys.argv[1].strip():
+    print("usage: apply-ldap <database>", file=sys.stderr)
+    sys.exit(2)
+database = sys.argv[1].strip()
+
+env = os.environ
+if env.get("LDAP_ENABLED", "false") != "true":
+    print("LDAP is not enabled; nothing to apply", file=sys.stderr)
+    sys.exit(3)
+
+# The snippet runs inside `odoo shell`; `env` there is the Odoo Environment.
+snippet = r'''
+import os
+srv = os.environ.get("X_LDAP_SERVER") or ""
+port = int(os.environ.get("X_LDAP_PORT") or "389")
+vals = {
+    "ldap_server": srv,
+    "ldap_server_port": port,
+    "ldap_binddn": os.environ.get("X_LDAP_BINDDN") or "",
+    "ldap_password": os.environ.get("X_LDAP_PASSWORD") or "",
+    "ldap_base": os.environ.get("X_LDAP_BASE") or "",
+    "ldap_filter": os.environ.get("X_LDAP_FILTER") or "",
+    "ldap_tls": os.environ.get("X_LDAP_TLS") == "true",
+    "create_user": os.environ.get("X_LDAP_CREATE_USER", "true") == "true",
+}
+Ldap = env["res.company.ldap"]
+company = env["res.company"].search([], limit=1)
+if not company:
+    print("NO_COMPANY"); 
+else:
+    rec = Ldap.search([("company", "=", company.id)], limit=1)
+    if rec:
+        rec.write(vals)
+    else:
+        vals["company"] = company.id
+        Ldap.create(vals)
+    env.cr.commit()
+    print("LDAP_APPLIED", company.name)
+'''
+
+# auth_ldap provides the res.company.ldap model; make sure it is installed in
+# the target database before configuring it (idempotent).
+install = subprocess.run(
+    ["podman", "exec", "odoo-app", "odoo", "-d", database,
+     "-i", "auth_ldap", "--stop-after-init", "--no-http", "--log-level=warn"],
+    capture_output=True, text=True, timeout=600)
+if install.returncode != 0:
+    print("failed to install auth_ldap in '%s':\n%s" % (database, (install.stdout+install.stderr)[-1500:]), file=sys.stderr)
+    sys.exit(1)
+
+cmd = [
+    "podman", "exec", "-i",
+    "-e", "X_LDAP_SERVER=" + env.get("LDAP_SERVER", ""),
+    "-e", "X_LDAP_PORT=" + env.get("LDAP_PORT", "389"),
+    "-e", "X_LDAP_BINDDN=" + env.get("LDAP_BINDDN", ""),
+    "-e", "X_LDAP_PASSWORD=" + env.get("LDAP_PASSWORD", ""),
+    "-e", "X_LDAP_BASE=" + env.get("LDAP_BASE", ""),
+    "-e", "X_LDAP_FILTER=" + env.get("LDAP_FILTER", ""),
+    "-e", "X_LDAP_TLS=" + env.get("LDAP_TLS", "false"),
+    "-e", "X_LDAP_CREATE_USER=" + env.get("LDAP_CREATE_USER", "true"),
+    "odoo-app", "odoo", "shell", "-d", database, "--no-http", "--log-level=warn",
+]
+proc = subprocess.run(cmd, input=snippet, capture_output=True, text=True, timeout=180)
+combined = (proc.stdout or "") + (proc.stderr or "")
+if "LDAP_APPLIED" in combined:
+    print("LDAP applied to database '%s'" % database)
+    sys.exit(0)
+print("failed to apply LDAP to '%s':\n%s" % (database, combined[-1500:]), file=sys.stderr)
+sys.exit(1)

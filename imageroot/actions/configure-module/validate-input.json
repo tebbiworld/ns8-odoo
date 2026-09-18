@@ -1,0 +1,117 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Configure odoo",
+    "$id": "http://nethserver.org/json-schema/task/input/odoo/configure-module",
+    "description": "Configure the Odoo module",
+    "examples": [
+        {
+            "host": "odoo.example.org",
+            "http2https": true,
+            "lets_encrypt": true,
+            "timezone": "Europe/Berlin",
+            "workers": 0,
+            "list_db": true,
+            "master_password": "change-me"
+        }
+    ],
+    "type": "object",
+    "required": [
+        "host"
+    ],
+    "properties": {
+        "host": {
+            "type": "string",
+            "title": "Host name",
+            "description": "Fully qualified domain name for Odoo, like 'odoo.example.org'",
+            "format": "hostname",
+            "pattern": "\\."
+        },
+        "lets_encrypt": {
+            "type": "boolean",
+            "title": "Let's Encrypt certificate",
+            "description": "Request a valid Let's Encrypt certificate for the host name."
+        },
+        "http2https": {
+            "type": "boolean",
+            "title": "HTTP to HTTPS redirection",
+            "description": "Redirect all HTTP requests to HTTPS."
+        },
+        "timezone": {
+            "type": "string",
+            "title": "Timezone",
+            "description": "IANA time zone for the container OS, like 'Europe/Berlin'."
+        },
+        "workers": {
+            "type": "integer",
+            "title": "Worker processes",
+            "description": "0 keeps Odoo in threaded mode (one HTTP port, live chat works, one route). A positive value switches to multiprocess.",
+            "minimum": 0,
+            "maximum": 32
+        },
+        "list_db": {
+            "type": "boolean",
+            "title": "Show the database manager",
+            "description": "Expose the database list and manager (still protected by the master password)."
+        },
+        "master_password": {
+            "type": "string",
+            "title": "Master password",
+            "description": "Odoo master password protecting the database manager (create/duplicate/drop/backup/restore). Leave empty to keep the current one.",
+            "maxLength": 256
+        },
+        "ldap_enabled": {
+            "type": "boolean",
+            "title": "Enable directory login",
+            "description": "Store LDAP/AD settings and let you apply them to a database."
+        },
+        "ldap_server": {
+            "type": "string",
+            "title": "LDAP server",
+            "description": "Host name of the directory server, e.g. ad.example.org.",
+            "maxLength": 253
+        },
+        "ldap_port": {
+            "type": "integer",
+            "title": "Port",
+            "description": "389 (with StartTLS) or 636.",
+            "minimum": 1,
+            "maximum": 65535
+        },
+        "ldap_tls": {
+            "type": "boolean",
+            "title": "StartTLS",
+            "description": "Use StartTLS on the connection. For Active Directory keep port 389 and StartTLS on (AD refuses plain 389)."
+        },
+        "ldap_binddn": {
+            "type": "string",
+            "title": "Bind DN / service account",
+            "maxLength": 512
+        },
+        "ldap_password": {
+            "type": "string",
+            "title": "Bind password",
+            "description": "Leave empty to keep the stored one.",
+            "maxLength": 256
+        },
+        "ldap_base": {
+            "type": "string",
+            "title": "Base DN",
+            "maxLength": 512
+        },
+        "ldap_filter": {
+            "type": "string",
+            "title": "Login filter",
+            "description": "e.g. (sAMAccountName=%s) for AD, (uid=%s) for OpenLDAP.",
+            "maxLength": 512
+        },
+        "ldap_create_user": {
+            "type": "boolean",
+            "title": "Create Odoo users on first login"
+        },
+        "ldap_verify_cert": {
+            "type": "boolean",
+            "title": "Verify TLS certificate",
+            "description": "Off (default) skips certificate verification, for an internal-CA AD/LDAP; the StartTLS connection stays encrypted. On requires the CA in the trust store."
+        }
+    }
+}

@@ -1,0 +1,51 @@
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Odoo application server. It joins the odoo pod, reads its configuration from
+# the generated /etc/odoo/odoo.conf and talks to PostgreSQL on 127.0.0.1. The
+# filestore lives in the "odoo-data" volume and extra/OCA add-ons in the
+# "odoo-addons" volume, mounted at /mnt/extra-addons.
+
+[Unit]
+Description=Odoo application
+BindsTo=odoo.service
+After=odoo.service odoo-db.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+TimeoutStartSec=900
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/odoo-app.pid %t/odoo-app.ctr-id
+# Render the Odoo configuration from the current environment before each start.
+ExecStartPre=runagent render-config
+# Wait for PostgreSQL to pass its health check before starting Odoo.
+ExecStartPre=/bin/bash -c 'for i in $(seq 1 150); do [ "$(/usr/bin/podman inspect -f "{{.State.Health.Status}}" odoo-db 2>/dev/null)" = "healthy" ] && exit 0; sleep 2; done; echo "timeout waiting for odoo-db to become healthy" >&2; exit 1'
+ExecStart=/usr/bin/podman run \
+    --conmon-pidfile %t/odoo-app.pid \
+    --cidfile %t/odoo-app.ctr-id \
+    --cgroups=no-conmon \
+    --pod-id-file %t/odoo.pod-id \
+    --replace -d --name odoo-app \
+    --volume odoo-data:/var/lib/odoo:U \
+    --volume odoo-addons:/mnt/extra-addons:U \
+    --volume %S/state/odoo.conf:/etc/odoo/odoo.conf:ro,Z \
+    --env HOST=127.0.0.1 \
+    --env PORT=5432 \
+    --env USER=odoo \
+    --env PASSWORD=${POSTGRES_PASSWORD} \
+    --env TZ=${TZ} \
+    --env LDAPTLS_REQCERT=${LDAP_TLS_REQCERT} \
+    ${ODOO_IMAGE}
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/odoo-app.ctr-id -t 30
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/odoo-app.ctr-id
+PIDFile=%t/odoo-app.pid
+Type=forking
+SyslogIdentifier=%u
+
+[Install]
+WantedBy=default.target

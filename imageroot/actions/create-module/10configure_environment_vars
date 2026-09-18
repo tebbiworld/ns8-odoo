@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# create-module runs once, right after the module user is created. Generate the
+# long-lived secrets (the PostgreSQL password and the Odoo master/admin
+# password used by the database manager) and the default runtime options, then
+# persist them so the systemd units and the config renderer can consume them.
+
+import secrets
+import agent
+
+# PostgreSQL password for the "odoo" role (also used by Odoo to connect).
+agent.set_env("POSTGRES_PASSWORD", secrets.token_hex(16))
+
+# Odoo master password: protects the database manager (create/duplicate/drop/
+# backup/restore of databases) and is stored as admin_passwd in odoo.conf.
+agent.set_env("ODOO_MASTER_PASSWORD", secrets.token_urlsafe(15))
+
+# Default runtime options (overridable from configure-module / the UI).
+#   ODOO_WORKERS: 0 = threaded mode, which keeps the live-chat websocket on the
+#     single HTTP port so one Traefik route is enough. Raise it (multiprocess)
+#     only on bigger installs.
+#   ODOO_LIST_DB: expose the database list/manager (still master-password gated).
+agent.set_env("ODOO_WORKERS", "0")
+agent.set_env("ODOO_LIST_DB", "True")
+
+# Time zone for the container OS (Odoo itself stores per-user time zones).
+agent.set_env("TZ", "UTC")
+
+# Certificate check for LDAP StartTLS. Default "never": an on-prem AD/LDAP almost
+# always presents an internal-CA certificate, and the connection stays encrypted.
+# The admin can turn verification on (sets it to "demand") once the CA is trusted.
+agent.set_env("LDAP_TLS_REQCERT", "never")
+
+agent.dump_env()

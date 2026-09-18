@@ -1,0 +1,36 @@
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Rootless Podman pod hosting the Odoo web application and its PostgreSQL
+# database. The two containers share the pod network namespace, so Odoo reaches
+# PostgreSQL on 127.0.0.1:5432. The pod publishes the Odoo HTTP port on the node
+# loopback for Traefik.
+
+[Unit]
+Description=Odoo pod
+Requires=odoo-db.service odoo-app.service
+Before=odoo-db.service odoo-app.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/odoo.pid %t/odoo.pod-id
+ExecStartPre=/usr/bin/podman pod create \
+    --infra-conmon-pidfile %t/odoo.pid \
+    --pod-id-file %t/odoo.pod-id \
+    --name odoo \
+    --publish 127.0.0.1:${TCP_PORT}:8069 \
+    --replace
+ExecStart=/usr/bin/podman pod start --pod-id-file %t/odoo.pod-id
+ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/odoo.pod-id -t 30
+ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/odoo.pod-id
+PIDFile=%t/odoo.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

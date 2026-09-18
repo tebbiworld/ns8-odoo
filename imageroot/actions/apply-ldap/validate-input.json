@@ -1,0 +1,10 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "apply-ldap input",
+    "$id": "http://nethserver.org/json-schema/task/input/odoo/apply-ldap",
+    "type": "object",
+    "properties": {
+        "database": { "type": "string", "maxLength": 128 },
+        "all": { "type": "boolean" }
+    }
+}

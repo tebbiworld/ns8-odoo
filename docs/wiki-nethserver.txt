@@ -1,0 +1,54 @@
+======Odoo======
+Unofficial NethServer 8 module that runs [[https://www.odoo.com|Odoo]] 19 (community edition) with a PostgreSQL database, self-built from the official Odoo image. Not affiliated with Odoo SA.
+
+====Announcement and talks====
+TBA
+
+Odoo is a community application from the [[ns8:tebbiworld_repository|tebbiworld]] repository. Documentation and source can be found on [[https://github.com/tebbiworld/ns8-odoo|Github]]
+
+=====What it does=====
+  * Odoo 19 (''%%docker.io/library/odoo:19.0%%'') and PostgreSQL 16 in one rootless Podman pod; Odoo reaches the database on 127.0.0.1
+  * one Traefik route with Let's Encrypt and HTTP→HTTPS redirection; Odoo runs in proxy mode
+  * threaded mode by default (one HTTP port, the live-chat websocket works on it, a single route is enough); a worker count is configurable
+  * a master password protects the database manager; you create databases from Odoo's own manager
+  * a folder for custom / OCA add-ons at ''%%/mnt/extra-addons%%''
+  * module backup covers the database, the filestore and the add-ons
+
+=====First run=====
+Odoo starts with **no database**. Open the database manager at ''%%https://<host>/web/database/manager%%'', enter the master password (shown in the module Settings) and create your first database: choose a name, set the admin e-mail and password, and pick whether to load demo data.
+
+=====Settings=====
+  * **Host name** — the FQDN, published through Traefik.
+  * **Let's Encrypt / HTTP→HTTPS** — certificate and redirect.
+  * **Timezone** — the container OS time zone.
+  * **Worker processes** — 0 keeps threaded mode (one route, live chat works); raise it for multiprocess.
+  * **Show the database manager** — expose the database list/manager (still behind the master password).
+  * **Master password** — protects create/duplicate/drop/backup/restore. Stored in the module environment (node-admin readable). Leave empty to keep the current one.
+
+=====Custom and OCA add-ons=====
+Drop extra modules into the ''odoo-addons'' volume (mounted at ''%%/mnt/extra-addons%%''), then update the apps list and install them from Odoo.
+
+=====Directory login (AD / LDAP)=====
+Odoo Community ships the built-in LDAP Authentication (''auth_ldap''). The module lets you configure it and apply it to a database: enter the server, port, StartTLS, bind DN and password, base DN and a login filter. For **Active Directory** use **port 389 with StartTLS on** (AD refuses plain 389) and the filter ''%%(sAMAccountName=%s)%%''; for OpenLDAP use ''%%(uid=%s)%%''. Because Odoo keeps the LDAP configuration **per database**, create a database first and then apply the settings to it (new matching users can be created on first login).
+
+=====Backup=====
+The NS8 backup includes the ''odoo-pgdata'' (databases), ''odoo-data'' (filestore) and ''odoo-addons'' volumes. For a guaranteed-consistent dump you can also use Odoo's own database backup.
+
+=====Not included (by design)=====
+  * an automatic cross-major data migration (e.g. 16 → 19); Odoo's upgrade path / OpenUpgrade is the tool for that
+
+=====Licences=====
+  * The module (ns8-odoo) is GPL-3.0-or-later.
+  * Odoo Community Edition is LGPL-3.0; the official image is pulled unmodified at runtime.
+  * Unofficial community module, not affiliated with Odoo SA.
+
+=====Links=====
+  * [[https://github.com/tebbiworld/ns8-odoo|Module source and issues]]
+  * [[https://www.odoo.com/documentation/19.0/|Odoo 19 documentation]]
+
+{{tag>application}}
+{{tag>category:Sysadmin}}
+{{tag>status:Alpha}}
+{{tag>certlevel:1}}
+{{tag>repo:tebbiworld}}
+{{tag>description:"Odoo 19 ERP/CRM (community) with PostgreSQL, self-built from the official image, custom/OCA add-ons folder"}}

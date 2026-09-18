@@ -1,0 +1,46 @@
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# PostgreSQL database backing Odoo. It joins the odoo pod and stores its data in
+# the rootless named volume "odoo-pgdata". The odoo role is a superuser (the
+# image bootstrap user), so Odoo can create and drop its own databases from the
+# web database manager.
+
+[Unit]
+Description=Odoo PostgreSQL database
+BindsTo=odoo.service
+After=odoo.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/odoo-db.pid %t/odoo-db.ctr-id
+ExecStart=/usr/bin/podman run \
+    --conmon-pidfile %t/odoo-db.pid \
+    --cidfile %t/odoo-db.ctr-id \
+    --cgroups=no-conmon \
+    --pod-id-file %t/odoo.pod-id \
+    --replace -d --name odoo-db \
+    --volume odoo-pgdata:/var/lib/postgresql/data:U \
+    --env POSTGRES_USER=odoo \
+    --env POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
+    --env POSTGRES_DB=postgres \
+    --env PGDATA=/var/lib/postgresql/data/pgdata \
+    --health-cmd "pg_isready -U odoo -d postgres" \
+    --health-interval 10s \
+    --health-timeout 5s \
+    --health-retries 12 \
+    ${POSTGRES_IMAGE}
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/odoo-db.ctr-id -t 30
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/odoo-db.ctr-id
+PIDFile=%t/odoo-db.pid
+Type=forking
+SyslogIdentifier=%u
+
+[Install]
+WantedBy=default.target

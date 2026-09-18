@@ -1,0 +1,9 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "list-databases output",
+    "$id": "http://schema.nethserver.org/odoo/list-databases-output.json",
+    "type": "object",
+    "properties": {
+        "databases": { "type": "array", "items": { "type": "string" } }
+    }
+}

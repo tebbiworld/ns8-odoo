@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Render /etc/odoo/odoo.conf (written to the state directory and bind-mounted
+# read-only into the Odoo container) from the current module environment. Run
+# from the app unit's ExecStartPre and from configure-module, so a settings
+# change reaches Odoo on the next restart.
+
+import os
+
+env = os.environ
+workers = env.get("ODOO_WORKERS", "0").strip() or "0"
+list_db = env.get("ODOO_LIST_DB", "True").strip() or "True"
+
+conf = f"""[options]
+; Managed by ns8-odoo. Do not edit by hand; use the module Settings.
+admin_passwd = {env.get('ODOO_MASTER_PASSWORD', '')}
+db_host = 127.0.0.1
+db_port = 5432
+db_user = odoo
+db_password = {env.get('POSTGRES_PASSWORD', '')}
+db_maxconn = 64
+addons_path = /usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons
+data_dir = /var/lib/odoo
+proxy_mode = True
+list_db = {list_db}
+workers = {workers}
+limit_time_cpu = 600
+limit_time_real = 1200
+"""
+
+state = os.environ.get("AGENT_STATE_DIR") or os.path.expanduser("~/.config/state")
+path = os.path.join(state, "odoo.conf")
+tmp = path + ".tmp"
+with open(tmp, "w") as fp:
+    fp.write(conf)
+os.chmod(tmp, 0o644)
+os.replace(tmp, path)
+print("rendered", path)
