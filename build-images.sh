@@ -38,11 +38,13 @@ buildah add "${container}" imageroot /imageroot
 buildah add "${container}" ui/dist /ui
 # One TCP port (Odoo HTTP, published on the node loopback for Traefik); the
 # routeadm authorization to publish/remove the Traefik route; rootless.
+# The bulk-data volumes can be placed on an additional disk at install time.
 buildah config --entrypoint=/ \
     --label="org.nethserver.authorizations=traefik@node:routeadm" \
     --label="org.nethserver.tcp-ports-demand=1" \
     --label="org.nethserver.rootfull=0" \
     --label="org.nethserver.images=${odoo_image} ${postgres_image}" \
+    --label="org.nethserver.volumes=odoo-data" \
     "${container}"
 buildah commit "${container}" "${repobase}/${reponame}"
 
