@@ -20,7 +20,15 @@ if len(sys.argv) < 2 or not sys.argv[1].strip():
     sys.exit(2)
 database = sys.argv[1].strip()
 
-env = os.environ
+env = dict(os.environ)
+# The bind password lives in state/passwords.env, not in the agent environment.
+_state = os.environ.get("AGENT_STATE_DIR") or os.path.expanduser("~/.config/state")
+_pwfile = os.path.join(_state, "passwords.env")
+if os.path.exists(_pwfile):
+    for _line in open(_pwfile):
+        if "=" in _line and not _line.startswith("#"):
+            _k, _v = _line.rstrip("\n").split("=", 1)
+            env[_k] = _v
 if env.get("LDAP_ENABLED", "false") != "true":
     print("LDAP is not enabled; nothing to apply", file=sys.stderr)
     sys.exit(3)
@@ -70,14 +78,15 @@ cmd = [
     "-e", "X_LDAP_SERVER=" + env.get("LDAP_SERVER", ""),
     "-e", "X_LDAP_PORT=" + env.get("LDAP_PORT", "389"),
     "-e", "X_LDAP_BINDDN=" + env.get("LDAP_BINDDN", ""),
-    "-e", "X_LDAP_PASSWORD=" + env.get("LDAP_PASSWORD", ""),
+    "-e", "X_LDAP_PASSWORD",
     "-e", "X_LDAP_BASE=" + env.get("LDAP_BASE", ""),
     "-e", "X_LDAP_FILTER=" + env.get("LDAP_FILTER", ""),
     "-e", "X_LDAP_TLS=" + env.get("LDAP_TLS", "false"),
     "-e", "X_LDAP_CREATE_USER=" + env.get("LDAP_CREATE_USER", "true"),
     "odoo-app", "odoo", "shell", "-d", database, "--no-http", "--log-level=warn",
 ]
-proc = subprocess.run(cmd, input=snippet, capture_output=True, text=True, timeout=180)
+proc = subprocess.run(cmd, input=snippet, capture_output=True, text=True, timeout=180,
+                      env=dict(os.environ, X_LDAP_PASSWORD=env.get("LDAP_PASSWORD", "")))
 combined = (proc.stdout or "") + (proc.stderr or "")
 if "LDAP_APPLIED" in combined:
     print("LDAP applied to database '%s'" % database)

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Runs before the backup (CWD = state/). Dump the role definitions and every
+# Odoo database in pg_dump custom format into state/pgdump/.
+
+set -e -o pipefail
+exec 1>&2
+
+rm -rf pgdump.tmp
+mkdir -p pgdump.tmp
+podman exec odoo-db pg_dumpall -U odoo --globals-only > pgdump.tmp/globals.sql
+dbs=$(podman exec odoo-db psql -U odoo -d postgres -tAc \
+    "SELECT datname FROM pg_database WHERE datistemplate = false AND datname <> 'postgres'")
+for db in ${dbs}; do
+    echo "Dumping Odoo database ${db}"
+    podman exec odoo-db pg_dump -U odoo --format=c "${db}" > "pgdump.tmp/${db}.pg_dump"
+done
+rm -rf pgdump
+mv pgdump.tmp pgdump
+echo "PostgreSQL dump complete: $(ls pgdump | wc -l) files, $(du -sh pgdump | cut -f1)"

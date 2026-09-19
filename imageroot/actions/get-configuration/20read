@@ -21,6 +21,9 @@ def _running(name):
         return False
 
 
+_pwfile = os.path.join(os.environ["AGENT_STATE_DIR"], "passwords.env")
+_secrets = agent.read_envfile(_pwfile) if os.path.exists(_pwfile) else {}
+
 config = {}
 config["host"] = os.getenv("TRAEFIK_HOST", "")
 config["http2https"] = os.getenv("TRAEFIK_HTTP2HTTPS") == "True"
@@ -36,7 +39,7 @@ except Exception:
 config["workers"] = int(os.getenv("ODOO_WORKERS", "0") or 0)
 config["list_db"] = os.getenv("ODOO_LIST_DB", "True") == "True"
 # Never return the master password; only whether one is set.
-config["master_password_set"] = bool(os.getenv("ODOO_MASTER_PASSWORD", ""))
+config["master_password_set"] = bool(_secrets.get("ODOO_MASTER_PASSWORD", ""))
 
 # Live state so the UI can show status and a link.
 config["db_running"] = _running("odoo-db")
@@ -55,7 +58,7 @@ config["ldap_base"] = os.getenv("LDAP_BASE", "")
 config["ldap_filter"] = os.getenv("LDAP_FILTER", "")
 config["ldap_create_user"] = os.getenv("LDAP_CREATE_USER", "true") == "true"
 config["ldap_verify_cert"] = os.getenv("LDAP_TLS_REQCERT", "never") == "demand"
-config["ldap_password_set"] = bool(os.getenv("LDAP_PASSWORD", ""))
+config["ldap_password_set"] = bool(_secrets.get("LDAP_PASSWORD", ""))
 
 # List of Odoo databases (for the LDAP "apply to" selector).
 try:

@@ -11,8 +11,15 @@
 # change reaches Odoo on the next restart.
 
 import os
+import sys
+import agent
 
-env = os.environ
+state = os.environ.get("AGENT_STATE_DIR") or os.path.expanduser("~/.config/state")
+env = dict(os.environ)
+# Secrets live in state/passwords.env, not in the agent environment.
+pwfile = os.path.join(state, "passwords.env")
+if os.path.exists(pwfile):
+    env.update(agent.read_envfile(pwfile))
 workers = env.get("ODOO_WORKERS", "0").strip() or "0"
 list_db = env.get("ODOO_LIST_DB", "True").strip() or "True"
 
@@ -33,11 +40,10 @@ limit_time_cpu = 600
 limit_time_real = 1200
 """
 
-state = os.environ.get("AGENT_STATE_DIR") or os.path.expanduser("~/.config/state")
 path = os.path.join(state, "odoo.conf")
 tmp = path + ".tmp"
 with open(tmp, "w") as fp:
     fp.write(conf)
 os.chmod(tmp, 0o644)
 os.replace(tmp, path)
-print("rendered", path)
+print("rendered", path, file=sys.stderr)

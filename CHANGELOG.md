@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.1.0 — 2026-09-19
+
+Alignment with the NethServer module conventions (NethServer/agents skills).
+
+- **Secrets moved out of the module environment.** The database password, the
+  master password and the LDAP bind password are now kept in
+  `state/passwords.env` (mode 0600) instead of `state/environment`, which NS8
+  mirrors to Redis in plain text. Existing installations are migrated on update;
+  the values do not change. The secrets are no longer passed on the podman
+  command line either.
+- **Consistent database backup.** `module-dump-state` writes a `pg_dump` of
+  every database before the backup; the live PostgreSQL data directory is no
+  longer copied file by file.
+- **Working restore.** New `restore-module` steps rebuild the database from the
+  dumps and re-apply every setting (host, Let's Encrypt, workers, directory
+  login). Backups taken with 1.0.0 that only contain the raw data volume must
+  be restored with 1.0.0.
+- **Fully pinned images.** `odoo:19.0-20260908` and `postgres:16.14` instead of
+  the rolling `19.0` and `16` tags; the weekly auto-release follows the dated
+  19.0 builds.
+- Service restarts list every unit of the pod explicitly; helper output goes to
+  stderr; validation errors exit with status 3.
+
 ## 1.0.0 — 2026-09-18
 
 - First release. Odoo 19 (community, official image) with a PostgreSQL 16

@@ -6,4 +6,5 @@
 set -e
 exec 1>&2
 systemctl --user enable odoo.service
-systemctl --user restart odoo.service
+# List every unit: restarting only the pod does not reliably cycle its children.
+systemctl --user restart odoo.service odoo-db.service odoo-app.service

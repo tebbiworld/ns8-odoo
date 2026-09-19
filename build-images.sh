@@ -13,9 +13,12 @@ reponame="odoo"
 
 # Runtime images, declared in org.nethserver.images so the node pre-pulls them
 # and exposes their references to the units as ${ODOO_IMAGE} / ${POSTGRES_IMAGE}.
-# The auto-release workflow bumps the Odoo reference when a newer tag appears.
-odoo_image="docker.io/library/odoo:19.0"
-postgres_image="docker.io/library/postgres:16"
+# Both references are fully pinned (no rolling tag): Odoo publishes dated builds
+# of the 19.0 branch, and the auto-release workflow bumps the Odoo reference
+# when a newer dated 19.0 tag appears. PostgreSQL stays on the 16 series (the
+# data directory is only compatible within one major) and is bumped by hand.
+odoo_image="docker.io/library/odoo:19.0-20260908"
+postgres_image="docker.io/library/postgres:16.14"
 
 container=$(buildah from scratch)
 

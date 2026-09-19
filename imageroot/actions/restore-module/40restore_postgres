@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Rebuild the PostgreSQL data directory from the pg_dump files restored into
+# state/pgdump/. An ephemeral PostgreSQL container initialises a fresh cluster
+# with the restored password and loads the dumps from its initdb hook.
+
+set -e -o pipefail
+exec 1>&2
+
+if [ ! -d pgdump ] || [ -z "$(ls -A pgdump 2>/dev/null)" ]; then
+    echo "no state/pgdump in the restored state: skipping database restore"
+    exit 0
+fi
+
+# shellcheck disable=SC1091
+set -a; source ./passwords.env; set +a
+
+podman volume rm -f odoo-pgdata >/dev/null 2>&1 || true
+rm -rf restore && mkdir -p restore
+cat > restore/10-restore.sh <<'EOS'
+set -e
+if [ -s /pgdump/globals.sql ]; then
+    # the bootstrap role "odoo" already exists: ignore that single error
+    psql -U odoo -d postgres -f /pgdump/globals.sql || true
+fi
+for f in /pgdump/*.pg_dump; do
+    [ -e "$f" ] || continue
+    db=$(basename "$f" .pg_dump)
+    echo "Restoring database ${db}"
+    createdb -U odoo -O odoo "${db}"
+    pg_restore -U odoo --no-owner --no-privileges -d "${db}" "$f"
+done
+EOS
+cat > restore/zz-stop.sh <<'EOS'
+docker_temp_server_stop
+exit 0
+EOS
+podman run --rm --network=none --replace --name odoo-restore \
+    --volume ./restore:/docker-entrypoint-initdb.d:Z \
+    --volume ./pgdump:/pgdump:Z \
+    --volume odoo-pgdata:/var/lib/postgresql/data:U \
+    --env POSTGRES_USER=odoo \
+    --env POSTGRES_PASSWORD \
+    --env POSTGRES_DB=postgres \
+    --env PGDATA=/var/lib/postgresql/data/pgdata \
+    "${POSTGRES_IMAGE}"
+rm -rf restore pgdump
+echo "databases restored from dump"

@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Re-apply the restored settings: every field configure-module accepts is passed
+# (passwords are omitted on purpose: blank = keep the restored passwords.env).
+
+import os
+
+import agent
+
+env = os.environ
+
+
+def flag(name, default):
+    return env.get(name, default).lower() == "true"
+
+
+data = {
+    "host": env["TRAEFIK_HOST"],
+    "http2https": flag("TRAEFIK_HTTP2HTTPS", "True"),
+    "lets_encrypt": flag("TRAEFIK_LETS_ENCRYPT", "False"),
+    "timezone": env.get("TZ", "UTC"),
+    "workers": int(env.get("ODOO_WORKERS", "0") or 0),
+    "list_db": flag("ODOO_LIST_DB", "True"),
+    "ldap_enabled": flag("LDAP_ENABLED", "false"),
+    "ldap_verify_cert": env.get("LDAP_TLS_REQCERT", "never") == "demand",
+    "ldap_server": env.get("LDAP_SERVER", ""),
+    "ldap_port": int(env.get("LDAP_PORT", "389") or 389),
+    "ldap_tls": flag("LDAP_TLS", "false"),
+    "ldap_binddn": env.get("LDAP_BINDDN", ""),
+    "ldap_base": env.get("LDAP_BASE", ""),
+    "ldap_filter": env.get("LDAP_FILTER", ""),
+    "ldap_create_user": flag("LDAP_CREATE_USER", "true"),
+}
+response = agent.tasks.run(agent_id=env["AGENT_ID"], action="configure-module", data=data)
+agent.assert_exp(response["exit_code"] == 0, "The configure-module subtask failed!")

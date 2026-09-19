@@ -16,6 +16,8 @@ After=odoo.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%S/state/environment
+# Secrets (DB and master password) are kept out of state/environment.
+EnvironmentFile=-%S/state/passwords.env
 WorkingDirectory=%S/state
 Restart=always
 TimeoutStopSec=70
@@ -28,7 +30,7 @@ ExecStart=/usr/bin/podman run \
     --replace -d --name odoo-db \
     --volume odoo-pgdata:/var/lib/postgresql/data:U \
     --env POSTGRES_USER=odoo \
-    --env POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
+    --env POSTGRES_PASSWORD \
     --env POSTGRES_DB=postgres \
     --env PGDATA=/var/lib/postgresql/data/pgdata \
     --health-cmd "pg_isready -U odoo -d postgres" \

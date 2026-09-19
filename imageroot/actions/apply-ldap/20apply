@@ -21,7 +21,7 @@ if os.environ.get("LDAP_ENABLED", "false") != "true":
     agent.set_status("validation-failed")
     json.dump([{"field": "ldap_enabled", "parameter": "ldap_enabled", "value": False,
                 "error": "ldap_not_enabled"}], fp=sys.stdout)
-    sys.exit(2)
+    sys.exit(3)
 
 targets = []
 if data.get("all"):
@@ -37,7 +37,7 @@ if not targets:
     agent.set_status("validation-failed")
     json.dump([{"field": "database", "parameter": "database", "value": data.get("database", ""),
                 "error": "no_database_selected"}], fp=sys.stdout)
-    sys.exit(2)
+    sys.exit(3)
 
 results = {}
 failed = False

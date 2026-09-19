@@ -9,8 +9,9 @@ does not modify Odoo.
 
 ## What it installs
 
-- **Odoo 19** (`docker.io/library/odoo:19.0`) and **PostgreSQL 16**
-  (`docker.io/library/postgres:16`) in a single rootless Podman pod. Odoo reaches
+- **Odoo 19** (a dated build of the 19.0 branch, e.g.
+  `docker.io/library/odoo:19.0-20260908`) and **PostgreSQL 16** (a pinned minor,
+  e.g. `docker.io/library/postgres:16.14`) in a single rootless Podman pod. Odoo reaches
   PostgreSQL on `127.0.0.1:5432` inside the pod.
 - One **Traefik route** for the host name, with Let's Encrypt and HTTP→HTTPS
   redirection. Odoo runs in `proxy_mode`.
@@ -18,8 +19,8 @@ does not modify Odoo.
 ## First run
 
 Odoo starts with **no database**. Open the module, then the **database manager**
-(`https://<host>/web/database/manager`), enter the **master password** (shown in
-the module settings) and create your first database: pick a name, set the admin
+(`https://<host>/web/database/manager`), enter the **master password** (set your own
+in the module settings first) and create your first database: pick a name, set the admin
 e-mail and password, and choose whether to load demo data.
 
 ## Settings
@@ -33,8 +34,10 @@ e-mail and password, and choose whether to load demo data.
 - **Show the database manager** — expose the database list/manager (still
   behind the master password).
 - **Master password** — protects the database manager (create / duplicate /
-  drop / backup / restore). Stored in the module environment (node-admin
-  readable). Leave the field empty to keep the current one.
+  drop / backup / restore). Like every secret of the module (database
+  password, LDAP bind password) it is stored in `state/passwords.env`, mode
+  0600, and not in the module environment, which NS8 mirrors to Redis. Leave
+  the field empty to keep the current one.
 
 ## Directory login (AD / LDAP)
 
@@ -57,15 +60,18 @@ Drop extra modules into the **`odoo-addons`** volume (mounted at
 
 ## Backup
 
-The NS8 module backup includes the `odoo-pgdata` (databases), `odoo-data`
-(filestore) and `odoo-addons` volumes. For a guaranteed-consistent dump you can
-also use Odoo's own database backup from the database manager.
+Before each backup run the module dumps every Odoo database with `pg_dump`
+(custom format) plus the role definitions into `state/pgdump/`. The NS8 module
+backup contains these dumps, `state/passwords.env`, and the `odoo-data`
+(filestore) and `odoo-addons` volumes. The live PostgreSQL data directory is
+not copied. On restore the module rebuilds the database volume from the dumps
+and re-applies all settings, including the host name and the directory login.
 
 ## Not included (by design)
 
 - An automatic cross-major data migration (e.g. 16 → 19). Odoo's own upgrade
-  path / OpenUpgrade is the tool for that; the weekly auto-release stays on the
-  19.0 image and never bumps across majors.
+  path / OpenUpgrade is the tool for that; the weekly auto-release follows the
+  dated builds of the 19.0 branch and never bumps across majors.
 - Built-in directory login. Add it later with the OCA `auth_ldap` module.
 
 ## Licence

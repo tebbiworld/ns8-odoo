@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import os
 import sys
 import json
 import agent
@@ -13,6 +14,9 @@ data = json.load(sys.stdin)
 
 agent.set_env("TRAEFIK_HOST", data["host"])
 agent.set_env("TRAEFIK_HTTP2HTTPS", data.get("http2https", True))
+if "lets_encrypt" in data:
+    # kept so restore-module can re-create the route with the same setting
+    agent.set_env("TRAEFIK_LETS_ENCRYPT", data["lets_encrypt"])
 
 # Optional time-zone override for the container OS.
 if (data.get("timezone") or "").strip():
@@ -33,11 +37,11 @@ if "list_db" in data:
 
 # Master (admin) password for the database manager. Only overwrite it when a
 # non-empty value is supplied, so leaving the field blank keeps the stored one.
+# Secrets go to state/passwords.env (0600), never to state/environment.
+secrets_changed = {}
 master = (data.get("master_password") or "").strip()
 if master:
-    agent.set_env("ODOO_MASTER_PASSWORD", master)
-
-agent.dump_env()
+    secrets_changed["ODOO_MASTER_PASSWORD"] = master
 
 # --- Directory login (Odoo auth_ldap) ---------------------------------------
 # Stored here; applied to a database with the apply-ldap action (Odoo keeps the
@@ -68,6 +72,15 @@ if "ldap_create_user" in data:
 # Keep the stored bind password when the field is left empty on a reconfigure.
 ldap_password = data.get("ldap_password")
 if ldap_password:
-    agent.set_env("LDAP_PASSWORD", ldap_password)
+    secrets_changed["LDAP_PASSWORD"] = ldap_password
 
-agent.dump_env()
+if secrets_changed:
+    path = os.path.join(os.environ["AGENT_STATE_DIR"], "passwords.env")
+    pw = agent.read_envfile(path) if os.path.exists(path) else {}
+    pw.update(secrets_changed)
+    old_umask = os.umask(0o077)
+    try:
+        agent.write_envfile(path, pw)
+    finally:
+        os.umask(old_umask)
+    os.chmod(path, 0o600)

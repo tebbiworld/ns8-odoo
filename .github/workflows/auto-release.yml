@@ -25,11 +25,11 @@ permissions:
   contents: write
 
 env:
-  # Track only the Odoo 19.0 tag: a new major (20.0) needs a manual data
-  # migration, so the weekly check never auto-bumps across majors. Patch
-  # updates to the rolling 19.0 image are picked up on a manual rebuild.
+  # Track only the dated builds of the Odoo 19.0 branch (19.0-YYYYMMDD): a new
+  # major (20.0) needs a manual data migration, so the weekly check never
+  # auto-bumps across majors.
   UPSTREAM_IMAGES: "docker.io/library/odoo"
-  TAG_REGEX: '^(?P<ver>19\.0)$'
+  TAG_REGEX: '^(?P<ver>19\.0-\d{8})$'
   UPSTREAM_NAME: "Odoo"
   PIN_FILES: "build-images.sh"
   MIN_DAYS: "42"
