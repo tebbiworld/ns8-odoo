@@ -17,8 +17,13 @@ if [ ! -d pgdump ] || [ -z "$(ls -A pgdump 2>/dev/null)" ]; then
     exit 0
 fi
 
-# shellcheck disable=SC1091
-set -a; source ./passwords.env; set +a
+# Export only the database secrets. The file is not sourced: other values in
+# it may contain spaces or shell metacharacters.
+while IFS='=' read -r key value; do
+    case "${key}" in
+        POSTGRES_PASSWORD) export "${key}=${value}" ;;
+    esac
+done < ./passwords.env
 
 podman volume rm -f odoo-pgdata >/dev/null 2>&1 || true
 rm -rf restore && mkdir -p restore

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1 — unreleased
+
+- **Restore fix.** The database restore step no longer sources `passwords.env` as a shell script: a master or LDAP password containing a space or a shell metacharacter aborted the restore. Only the database password is read, line by line.
+- Robot Framework tests (install, update from the previous release, backup and restore) run on real NS8 nodes through `stephdl/ns8-ci-actions`, as a job of the image build on every feature branch.
+
 ## 1.1.0 — 2026-09-19
 
 Alignment with the NethServer module conventions (NethServer/agents skills).
