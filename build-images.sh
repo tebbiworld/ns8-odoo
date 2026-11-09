@@ -17,7 +17,7 @@ reponame="odoo"
 # of the 19.0 branch, and the auto-release workflow bumps the Odoo reference
 # when a newer dated 19.0 tag appears. PostgreSQL stays on the 16 series (the
 # data directory is only compatible within one major) and is bumped by hand.
-odoo_image="docker.io/library/odoo:19.0-20260908"
+odoo_image="docker.io/library/odoo:19.0-20261102"
 postgres_image="docker.io/library/postgres:16.14"
 
 container=$(buildah from scratch)

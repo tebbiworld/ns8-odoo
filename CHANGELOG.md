@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2 — 2026-11-09
+
+- Odoo 19.0-20260908 → 19.0-20261102 (automatic upstream update).
+
 ## 1.1.1 — 2026-09-23
 
 - **Restore fix.** The database restore step no longer sources `passwords.env` as a shell script: a master or LDAP password containing a space or a shell metacharacter aborted the restore. Only the database password is read, line by line.
