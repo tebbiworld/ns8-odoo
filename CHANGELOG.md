@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.3 — 2026-11-20
+
+### Security
+
+- **PostgreSQL 16.14 → 16.16.** PostgreSQL's 2026-11-12 coordinated security
+  release fixes 52 CVEs across the supported majors, including CVE-2026-116331
+  (remote code execution for any login role) and CVE-2026-18447 /
+  CVE-2026-6460 (type-confusion arbitrary code execution). In-place minor
+  upgrade within major 16 — no dump/restore.
+
 ## 1.1.2 — 2026-11-09
 
 - Odoo 19.0-20260908 → 19.0-20261102 (automatic upstream update).
